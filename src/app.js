@@ -13,6 +13,11 @@ app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors());
 
+
+app.get('/folders', (req, res, next ) => {
+    res.send('All articles')
+})
+
 app.get('/', (req,res) => {
     res.send("Hello, diva!");
 })
