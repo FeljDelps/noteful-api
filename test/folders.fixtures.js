@@ -39,6 +39,27 @@ function makeFoldersArray(){
 
 }
 
+function makeMaliciousFolders(){
+
+  const maliciousFolder = {
+    id:911,
+    name: 'Naughty naughty very naughty <script>alert("xss");</script>'
+  }
+
+  const cleanFolder = {
+    
+    id:911,
+    name: 'Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;'
+  }
+
+  return {
+    maliciousFolder,
+    cleanFolder
+  }
+
+}
+
 module.exports = {
-    makeFoldersArray
+    makeFoldersArray,
+    makeMaliciousFolders
 }
