@@ -13,13 +13,15 @@ describe('Folders endpoints', function(){
             connection: process.env.TEST_DB_URL,
         });
 
-        app.set('db', db)
+        app.set('db', db);
     });
 
     after('disconnect from the db', () => db.destroy());
 
     before('clean the table', () => db.raw('TRUNCATE noteful_folders, noteful_notes RESTART IDENTITY CASCADE'));
     
+    afterEach('cleanup', () => db.raw('TRUNCATE noteful_folders, noteful_notes RESTART IDENTITY CASCADE'))
+
     describe(`GET /folders`, () => {
         context(`Given there are folders in the database`, () => {
             const { testFolders, expectedFolders } = makeFoldersArray();
@@ -29,8 +31,6 @@ describe('Folders endpoints', function(){
                     .into('noteful_folders')
                     .insert(testFolders)
             })
-    
-            afterEach('cleanup', () => db.raw('TRUNCATE noteful_folders, noteful_notes RESTART IDENTITY CASCADE'))
     
             it(`GET /folders responds with a 200 and all of the folders`, () => {
                 return supertest(app)
@@ -62,8 +62,6 @@ describe('Folders endpoints', function(){
                     .into('noteful_folders')
                     .insert(testFolders)
             })
-    
-            afterEach('cleanup', () => db.raw('TRUNCATE noteful_folders, noteful_notes RESTART IDENTITY CASCADE'))
     
             it(`responds with a 200 and the specified folder`, () => {
                 const folderId = 2;
@@ -126,7 +124,7 @@ describe('Folders endpoints', function(){
         });
     });
 
-    describe.only(`DELETE /folders/:folder_id`, () => {
+    describe(`DELETE /folders/:folder_id`, () => {
         
         context(`Given no folders`, () => {
             it(`responds with a 404`, () => {
