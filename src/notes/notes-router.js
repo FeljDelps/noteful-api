@@ -1,7 +1,7 @@
+const path = require('path');
 const express = require('express');
 const NotesService = require('./notes-service');
 const xss = require('xss');
-const { default: knex } = require('knex');
 
 const notesRouter = express.Router();
 const jsonParser = express.json();
@@ -41,7 +41,7 @@ notesRouter
             .then(note => {
                 res
                     .status(201)
-                    .location(`/notes/${note.id}`)
+                    .location(path.posix.join(req.originalUrl, `${note.id}`))
                     .json(serializeNote(note))
             })
             .catch(next)
@@ -71,6 +71,25 @@ notesRouter
     .delete((req, res, next) => {
         const knexInstance = req.app.get('db')
         NotesService.deleteNote(knexInstance, req.params.note_id)
+            .then(numRowsAffected => {
+                res.status(204).end()
+            })
+            .catch(next)
+    })
+    .patch(jsonParser, (req, res, next) => {
+        const knexInstance = req.app.get('db');
+        const id = req.params.note_id;
+        const { name, content, folderid } = req.body;
+        const newData = { name, content, folderid }
+
+        const numOfValues = Object.values(newData).filter(Boolean).length
+            if(numOfValues === 0) {
+                return res.status(400).json({ 
+                    error: { message: `Request body must contain 'name', 'content', or 'folderid'` }
+                });
+            };
+        
+        NotesService.updateNote(knexInstance, id, newData)
             .then(numRowsAffected => {
                 res.status(204).end()
             })

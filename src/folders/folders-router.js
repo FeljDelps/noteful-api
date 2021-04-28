@@ -1,6 +1,8 @@
+const path = require('path');
 const express = require('express');
 const xss = require('xss');
 const FoldersService = require('./folders-service');
+
 
 const foldersRouter = express.Router();
 const jsonParser = express.json();
@@ -34,7 +36,7 @@ foldersRouter
             .then(folder => {
                 res
                     .status(201)
-                    .location(`/folders/${folder.id}`)
+                    .location(path.posix.join(req.originalUrl, `/${folder.id}`))
                     .json(folder)
             })
             .catch(next)            
@@ -64,6 +66,26 @@ foldersRouter
                 res.status(204).end()
             })
             .catch(next)
+    })
+    .patch(jsonParser, (req, res, next) => {
+        const knexInstance = req.app.get('db')
+        const id = req.params.folder_id;
+        const { name } = req.body;
+        const updatedFields = { name };
+ 
+        const numOfValues = Object.values(updatedFields).filter(Boolean).length
+            if(numOfValues === 0) {
+                return res.status(400).json({
+                    error: { message: `Request body must contain 'name'` }
+                })
+            }
+        
+        FoldersService.updateFolder(knexInstance, id, updatedFields)
+            .then(numRowsAffected => {
+                res.status(204).end()
+            })
+            .catch(next)
+
     })
         
 
