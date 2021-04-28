@@ -192,20 +192,17 @@ describe('Notes endpoints', function(){
                 return db
                     .into('noteful_folders')
                     .insert(testFolders)
-            });    
+            });
 
             it('removes XSS content', () => {
                 
-                const badNote = {
-                    name:'Malicious note name',
-                    content: `Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.`,
-                    folderid:1
-                };
-
                 return supertest(app)
                     .post('/api/notes')
-                    .send(badNote)
+                    .send(maliciousNote)
                     .expect(201)
+                    .expect(res =>{
+                        expect(res.body.content).to.eql(sanitizedNote.content)
+                    });
             });
         });
     });

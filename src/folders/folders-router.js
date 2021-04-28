@@ -18,7 +18,7 @@ foldersRouter
         const knexInstance = req.app.get('db')
         FoldersService.getAllFolders(knexInstance)
             .then(folders => {
-                res.json(folders)
+                res.json(folders.map(serializeFolder))
             })
             .catch(next);
     })
@@ -26,18 +26,18 @@ foldersRouter
         const  { name } = req.body;
         const newFolder = { name };
     
-        if(!name) {
-            return res.status(400).json({
-                error: { message: `Missing 'name' in request body`}
-            });
-        };
+        for(const [key, value] of Object.entries(newFolder))
+            if (value == null)
+                return res.status(400).json({ 
+                    error: { message: `Missing '${key}' in request body` }
+                })
         
         FoldersService.insertFolder(req.app.get('db'), newFolder)
             .then(folder => {
                 res
                     .status(201)
                     .location(path.posix.join(req.originalUrl, `/${folder.id}`))
-                    .json(folder)
+                    .json(serializeFolder(folder))
             })
             .catch(next)            
     })
@@ -72,7 +72,7 @@ foldersRouter
         const id = req.params.folder_id;
         const { name } = req.body;
         const updatedFields = { name };
- 
+        
         const numOfValues = Object.values(updatedFields).filter(Boolean).length
             if(numOfValues === 0) {
                 return res.status(400).json({
@@ -88,5 +88,4 @@ foldersRouter
 
     })
         
-
     module.exports = foldersRouter;
