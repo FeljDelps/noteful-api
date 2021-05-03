@@ -12,7 +12,7 @@ describe('Folders endpoints', function(){
     before('Make knex instance', () => {
         db = knex({
             client:'pg',
-            connection: process.env.TEST_DB_URL,
+            connection: process.env.TEST_DATABASE_URL,
         });
 
         app.set('db', db);
@@ -38,7 +38,26 @@ describe('Folders endpoints', function(){
                 return supertest(app)
                     .get('/api/folders')
                     .expect(200, expectedFolders)
-            });
+            });  
+        });
+        
+        context(`Given an XSS attack`, () => {
+            const { maliciousFolder, cleanFolder } = makeMaliciousFolders();
+                
+                before('insert malicious folder', () => {
+                    return db
+                        .into('noteful_folders')
+                        .insert(maliciousFolder)
+                });
+
+                it('removes XSS attack content', () => {
+                    return supertest(app)
+                        .get(`/api/folders`)
+                        .expect(200)
+                        .expect(res => {
+                            expect(res.body[0].name).to.eql(cleanFolder.name)   
+                        });
+                });
         });
     });
 
@@ -75,13 +94,8 @@ describe('Folders endpoints', function(){
         });
 
         context(`Given an XSS attack`, () => {
-           const { maliciousFolder, cleanFolder } = makeMaliciousFolders();
+            const { maliciousFolder, cleanFolder } = makeMaliciousFolders();
             
-            const badFolder = {
-                id:911,
-                name: 'Naughty naughty very naughty <script>alert("xss");</script>' 
-            }
-
             beforeEach('insert malicious folder', () => {
                 return db
                     .into('noteful_folders')
@@ -94,9 +108,9 @@ describe('Folders endpoints', function(){
                     .expect(200)
                     .expect(res => {
                         expect(res.body.name).to.eql(cleanFolder.name)   
-                    })
-            })
-        })
+                    });
+            });
+        });
     });
 
     describe(`POST /api/folders`, () => {
@@ -116,13 +130,37 @@ describe('Folders endpoints', function(){
                 });
         });
 
-        it(`responds with a 400 and error message when 'name' is missing`, () => {
-            return supertest(app)
-                .post('/api/folders')
-                .send({})
-                .expect(400, { 
-                    error: { message: `Missing 'name' in request body`}
-                });
+        const requiredFields = ['name'];
+
+        requiredFields.forEach(field => {
+            const testFolder = {
+                name: "Test folder name"
+            };
+
+            it(`responds with a 400 and an error message when the '${field}' is missing`, () => {
+                delete testFolder[field]
+
+                return supertest(app)
+                    .post('/api/folders')
+                    .send(testFolder)
+                    .expect(400, { 
+                        error: { message: `Missing '${field}' in request body` }
+                    });
+            });
+        });
+
+        context(`Given an XSS attack`, () => {
+            const { maliciousFolder, cleanFolder } = makeMaliciousFolders();
+
+            it('removes XSS attack content', () => {
+                return supertest(app)
+                    .post('/api/folders')
+                    .send(maliciousFolder)
+                    .expect(201)
+                    .expect(res => {
+                        expect(res.body.name).to.eql(cleanFolder.name)   
+                    });
+            });
         });
     });
 
@@ -214,10 +252,29 @@ describe('Folders endpoints', function(){
                     });
             });
 
-            it('')
+            it('responds with a 204 when only updating a subset of fields', () => {
+                const idToUpdate = 2;
 
+                const updatedFolder = {
+                    name: "updated folder name"
+                };
+
+                const expectedFolder = {
+                    ...expectedFolders[idToUpdate - 1],
+                    ...updatedFolder
+                };
+
+                return supertest(app)
+                    .patch(`/api/folders/${idToUpdate}`)
+                    .send(expectedFolder)
+                    .then(res =>
+                        supertest(app)
+                            .get(`/api/folders/${idToUpdate}`)
+                            .expect(expectedFolder)
+                        );
+            });
         });
-    })
+    });
     
     
     
